@@ -23,7 +23,7 @@ export default function CaseStudies() {
             <Reveal key={i} delay={i * 90} className="h-full">
               <article className="group flex h-full flex-col overflow-hidden rounded-card border border-line bg-card transition-[border-color,transform] duration-500 hover:-translate-y-1 hover:border-gold/40">
                 <div className="relative">
-                  <ImageSlot image={c.image} variant="scene" sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw" className="aspect-[16/10] w-full" />
+                  <ImageSlot image={c.image} sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw" className="aspect-[16/10] w-full" />
                   <span className="absolute left-4 top-4 rounded-full border border-line bg-black/55 px-3 py-1 font-display text-[0.65rem] font-semibold tracking-[0.2em] text-fg backdrop-blur">
                     {String(i + 1).padStart(2, "0")}
                   </span>

@@ -1,7 +1,6 @@
 import Nav from "@/components/Nav";
 import Hero from "@/components/Hero";
 import TrustStrip from "@/components/TrustStrip";
-import Team from "@/components/Team";
 import ApplicationSection from "@/components/ApplicationSection";
 import CaseStudies from "@/components/CaseStudies";
 import Method from "@/components/Method";
@@ -19,7 +18,6 @@ export default function HomePage() {
       <main id="main">
         <Hero />
         <TrustStrip />
-        <Team />
         <ApplicationSection />
         <CaseStudies />
         <Method />

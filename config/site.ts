@@ -1,20 +1,20 @@
 /**
  * ─────────────────────────────────────────────────────────────
  *  CENTRAL SITE CONFIGURATION
- *  Edit this file to update team details, images, metrics,
- *  case studies, program details and FAQ answers.
+ *  Edit this file to update case studies, images,
+ *  program details and FAQ answers.
  * ─────────────────────────────────────────────────────────────
  *
  *  IMAGES
  *  Put image files in /public/images/... and set the matching `src`
- *  below, e.g.  src: "/images/team/jace.jpg"
+ *  below, e.g.  src: "/images/case-studies/store.jpg"
  *  While `src` is null, a labelled placeholder is shown instead.
  */
 
 /**
  * DEVELOPMENT MODE
- * While true, the site shows small notes explaining that metrics,
- * case studies and program details are placeholders.
+ * While true, the site shows small notes explaining that case studies
+ * and program details are placeholders.
  * Set to false once real evidence and offer details are added.
  */
 export const DEVELOPMENT_MODE = true;
@@ -32,89 +32,19 @@ export const navLinks = [
   { label: "Home", href: "#top" },
   { label: "Our Method", href: "#method" },
   { label: "Results", href: "#results" },
-  { label: "About", href: "#about" },
 ] as const;
 
 /* ── Images ────────────────────────────────────────────────── */
 
 export type ImageAsset = {
-  /** Path inside /public, e.g. "/images/team/jace.jpg". null = show placeholder */
+  /** Path inside /public, e.g. "/images/case-studies/store.jpg". null = show placeholder */
   src: string | null;
   alt: string;
   /** Label shown on the placeholder while src is null */
   placeholderLabel: string;
 };
 
-export const images = {
-  hero: {
-    src: null,
-    alt: "Jace Sullivan and our team",
-    placeholderLabel: "FOUNDER & TEAM IMAGE PLACEHOLDER",
-  } satisfies ImageAsset,
-};
-
-/* ── Team ──────────────────────────────────────────────────── */
-
-export type TeamMember = {
-  name: string;
-  role: string;
-  /** Leave empty until a real, accurate bio is ready */
-  bio: string;
-  image: ImageAsset;
-};
-
-export const founder: TeamMember = {
-  name: "Jace Sullivan",
-  role: "Founder & Growth Strategist",
-  bio: "",
-  image: {
-    src: null,
-    alt: "Portrait of Jace Sullivan",
-    placeholderLabel: "FOUNDER IMAGE PLACEHOLDER",
-  },
-};
-
-export const team: TeamMember[] = [
-  {
-    name: "Team Member 02",
-    role: "Acquisition & Marketing",
-    bio: "",
-    image: { src: null, alt: "Portrait of Team Member 02", placeholderLabel: "TEAM MEMBER 02 IMAGE PLACEHOLDER" },
-  },
-  {
-    name: "Team Member 03",
-    role: "Conversion & Sales",
-    bio: "",
-    image: { src: null, alt: "Portrait of Team Member 03", placeholderLabel: "TEAM MEMBER 03 IMAGE PLACEHOLDER" },
-  },
-  {
-    name: "Team Member 04",
-    role: "Operations & Systems",
-    bio: "",
-    image: { src: null, alt: "Portrait of Team Member 04", placeholderLabel: "TEAM MEMBER 04 IMAGE PLACEHOLDER" },
-  },
-  {
-    name: "Team Member 05",
-    role: "Client Strategy",
-    bio: "",
-    image: { src: null, alt: "Portrait of Team Member 05", placeholderLabel: "TEAM MEMBER 05 IMAGE PLACEHOLDER" },
-  },
-];
-
-/* ── Performance metrics ───────────────────────────────────── */
-
-export type Metric = {
-  label: string;
-  /** Only fill in with VERIFIED figures, e.g. "40+" or "$2.1M". null = not yet verified */
-  value: string | null;
-};
-
-export const metrics: Metric[] = [
-  { label: "Verified businesses helped", value: null },
-  { label: "Verified revenue generated for clients", value: null },
-  { label: "Verified case studies", value: null },
-  { label: "Verified years of relevant experience", value: null },
-];
+/* ── Evidence note ───────────────────────────────────────── */
 
 /** Remove or set to "" once verified evidence is published */
 export const metricsNote =

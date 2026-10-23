@@ -46,12 +46,9 @@ Code: `app/api/apply/route.ts` (server, validates + forwards) and `lib/submitApp
 Almost everything you'll want to change lives in one file:
 
 - **`DEVELOPMENT_MODE`** — set to `false` to hide all dev notes and placeholder tags once real content is in.
-- **Images** — drop files into `public/images/...` and set the matching `src`, e.g. `src: "/images/team/jace.jpg"`. While `src` is `null`, a labelled placeholder shows.
-  - Hero: `images.hero` → `public/images/hero/`
-  - Founder & team: `founder`, `team` → `public/images/team/`
+- **Images** — drop files into `public/images/...` and set the matching `src`, e.g. `src: "/images/case-studies/store.jpg"`. While `src` is `null`, a labelled placeholder shows.
   - Case studies: `caseStudies[].image` → `public/images/case-studies/`
-- **Team** — names, roles, bios (`founder`, `team`).
-- **Metrics** — `metrics[].value` (only verified figures); `metricsNote` (set to `""` to remove the note).
+- **Evidence note** — `metricsNote` (set to `""` to remove it).
 - **Case studies** — `caseStudies` (set `placeholder: false` for real ones; add `link` for full write-ups).
 - **Program** — `programIncludes` (set `confirmed: true` and add `detail`), `programTerms.duration` / `.pricing`.
 - **FAQ** — `faqs`.
