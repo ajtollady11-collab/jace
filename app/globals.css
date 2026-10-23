@@ -1,0 +1,182 @@
+@import "tailwindcss";
+@import "@fontsource-variable/space-grotesk";
+@import "@fontsource-variable/inter";
+
+@theme {
+  --color-ink: #0b0b0c;
+  --color-ink-2: #101012;
+  --color-card: #151517;
+  --color-card-2: #1b1b1f;
+  --color-muted: #202023;
+  --color-line: #2b2b2e;
+  --color-fg: #f5f3ef;
+  --color-fg-2: #a5a5aa;
+  --color-gold: #c8a96b;
+  --color-gold-2: #e0c58b;
+
+  --font-display: "Space Grotesk Variable", "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter Variable", "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  --radius-card: 14px;
+  --radius-btn: 8px;
+}
+
+@layer base {
+  html {
+    background: var(--color-ink);
+    color: var(--color-fg);
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    font-family: var(--font-sans);
+    background: var(--color-ink);
+    color: var(--color-fg);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: clip;
+    text-rendering: optimizeLegibility;
+  }
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.025em;
+    text-wrap: balance;
+  }
+  p { text-wrap: pretty; }
+  section[id], [id="top"] { scroll-margin-top: 84px; }
+  ::selection { background: var(--color-gold); color: var(--color-ink); }
+  :focus-visible {
+    outline: 2px solid var(--color-gold-2);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── Reusable pieces ─────────────────────────────── */
+
+.container-x {
+  width: 100%;
+  max-width: 1240px;
+  margin-inline: auto;
+  padding-inline: 20px;
+}
+@media (min-width: 768px) { .container-x { padding-inline: 32px; } }
+
+.eyebrow {
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--color-gold);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  min-height: 52px;
+  padding: 0 1.6rem;
+  border-radius: var(--radius-btn);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 0.8125rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.btn-gold {
+  background: var(--color-gold);
+  color: #0b0b0c;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.25) inset, 0 10px 30px -12px rgba(200, 169, 107, 0.55);
+}
+.btn-gold:hover { background: var(--color-gold-2); transform: translateY(-1px); }
+.btn-gold:active { transform: translateY(0); }
+.btn-ghost {
+  border: 1px solid var(--color-line);
+  color: var(--color-fg);
+  background: rgba(255, 255, 255, 0.015);
+}
+.btn-ghost:hover { border-color: rgba(200, 169, 107, 0.6); color: var(--color-gold-2); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+.btn .arrow { transition: transform 0.25s ease; }
+.btn:hover .arrow { transform: translateX(3px); }
+
+.gold-text {
+  color: var(--color-gold-2);
+}
+
+.hairline-gold {
+  background: linear-gradient(90deg, transparent, rgba(200, 169, 107, 0.7), transparent);
+  height: 1px;
+}
+
+.grid-bg {
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 72px 72px;
+}
+
+.dev-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.6rem;
+  border: 1px dashed rgba(200, 169, 107, 0.45);
+  border-radius: 999px;
+  font-family: var(--font-display);
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-gold);
+  background: rgba(200, 169, 107, 0.06);
+  white-space: nowrap;
+}
+
+/* ── Scroll reveal (only active when JS has run) ── */
+.js .reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.8s cubic-bezier(0.2, 0.7, 0.2, 1), transform 0.8s cubic-bezier(0.2, 0.7, 0.2, 1);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+.js .reveal.is-visible { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  .js .reveal { opacity: 1; transform: none; }
+}
+
+/* ── Quiz step transition ── */
+@keyframes step-in {
+  from { opacity: 0; transform: translateX(var(--step-from, 16px)); }
+  to { opacity: 1; transform: none; }
+}
+.step-enter { animation: step-in 0.4s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
+.hero-in { animation: fade-up 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+
+@keyframes slow-drift {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -10px, 0); }
+}
+.drift { animation: slow-drift 9s ease-in-out infinite; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinner { animation: spin 0.8s linear infinite; }
