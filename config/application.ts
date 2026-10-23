@@ -175,3 +175,16 @@ export function isPlausibleProfile(input: string): boolean {
   if (/^@[\p{L}\p{N}._-]{2,}$/u.test(v)) return true;
   return /^(https?:\/\/)?([\p{L}\p{N}-]+\.)+[\p{L}]{2,}(:\d+)?([/?#]\S*)?$/iu.test(v);
 }
+
+/** Human-readable labels for each answer (used in the admin dashboard and CSV export) */
+export const answerLabels: Record<keyof ApplicationAnswers, string> = {
+  businessType: "Business type",
+  biggestChallenge: "Biggest challenge",
+  currentMonthlyRevenue: "Current monthly revenue",
+  targetMonthlyRevenue: "12-month revenue target",
+  growthApproachesTried: "Tried so far",
+  fullName: "Name (from application)",
+  investmentCapacity: "Willing to invest",
+  websiteOrSocial: "Website / social",
+  motivationAndBlockers: "Why scale & what's stopping them",
+};

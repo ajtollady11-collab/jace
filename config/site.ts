@@ -146,9 +146,7 @@ export const faqs: { q: string; a: string; devNote?: string }[] = [
   },
   {
     q: "What happens after I apply?",
-    a: "Our team reviews each application. If there's a potential fit, you'll be invited to book a conversation with us to talk through your business in more detail.",
-    devNote:
-      "Please note: the application form is currently in development and is not yet connected to a live submission system.",
+    a: "Straight after you submit your application, you can book a free 15-minute consultation call at a time that suits you. Times are shown in your own time zone. Our team reviews your answers before the call so we can make the most of it.",
   },
   {
     q: "How much does your program cost?",

@@ -3,8 +3,8 @@ import Reveal from "./Reveal";
 
 const nextSteps = [
   { n: "01", title: "Apply", text: "Answer nine short questions about your business and goals." },
-  { n: "02", title: "Review", text: "Our team reviews every application individually." },
-  { n: "03", title: "Conversation", text: "If there’s a potential fit, you’ll be invited to book a call." },
+  { n: "02", title: "Book", text: "Pick a time for a free 15-minute consultation, shown in your time zone." },
+  { n: "03", title: "Conversation", text: "Talk through your business and goals with our team." },
 ];
 
 export default function ApplicationSection() {

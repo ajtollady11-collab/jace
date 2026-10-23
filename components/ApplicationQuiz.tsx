@@ -11,12 +11,14 @@ import {
   type Question,
 } from "@/config/application";
 import { submitApplication } from "@/lib/submitApplication";
+import BookingFlow, { type BookingCredentials } from "./BookingFlow";
 import { Arrow } from "./ui";
 
 const STORAGE_KEY = "js-application-draft";
+const BOOKING_KEY = "js-booking";
 const EXCLUSIVE_OPTION = "I haven’t seriously tried anything yet";
 
-type Phase = "form" | "preview" | "received";
+type Phase = "form" | "preview" | "received" | "booking";
 
 export default function ApplicationQuiz() {
   const [step, setStep] = useState(0);
@@ -26,6 +28,8 @@ export default function ApplicationQuiz() {
   const [phase, setPhase] = useState<Phase>("form");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [credentials, setCredentials] = useState<BookingCredentials | null>(null);
+  const [bookingName, setBookingName] = useState("");
 
   const submittingRef = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -41,6 +45,15 @@ export default function ApplicationQuiz() {
   /* Restore an unfinished draft (e.g. accidental refresh) */
   useEffect(() => {
     try {
+      // Already applied in this tab? Resume booking.
+      const bk = JSON.parse(sessionStorage.getItem(BOOKING_KEY) || "null");
+      if (bk?.applicationId && bk?.token) {
+        setCredentials({ applicationId: bk.applicationId, token: bk.token });
+        setBookingName(typeof bk.name === "string" ? bk.name : "");
+        setPhase("booking");
+        restored.current = true;
+        return;
+      }
       const raw = sessionStorage.getItem(STORAGE_KEY);
       if (raw) {
         const saved = JSON.parse(raw) as { answers?: Partial<ApplicationAnswers>; step?: number };
@@ -151,7 +164,27 @@ export default function ApplicationQuiz() {
         /* ignore */
       }
     }
+    if (result.status === "received" && result.booking) {
+      setCredentials(result.booking);
+      setBookingName(answers.fullName.trim());
+      setPhase("booking");
+      return;
+    }
     setPhase(result.status);
+  }
+
+  function resetAll() {
+    try {
+      sessionStorage.removeItem(BOOKING_KEY);
+      sessionStorage.removeItem(STORAGE_KEY);
+    } catch {
+      /* ignore */
+    }
+    interacted.current = false;
+    setAnswers(emptyAnswers);
+    setStep(0);
+    setCredentials(null);
+    setPhase("form");
   }
 
   function editAnswers() {
@@ -165,6 +198,7 @@ export default function ApplicationQuiz() {
   return (
     <div
       ref={containerRef}
+      data-quiz-root
       className="relative scroll-mt-24 overflow-hidden rounded-[18px] border border-line bg-card shadow-[0_50px_100px_-40px_rgba(0,0,0,0.9)]"
     >
       <div aria-hidden className="hairline-gold absolute inset-x-10 top-0" />
@@ -254,6 +288,9 @@ export default function ApplicationQuiz() {
         </>
       )}
 
+      {phase === "booking" && credentials && (
+        <BookingFlow credentials={credentials} defaultName={bookingName} onReset={resetAll} />
+      )}
       {phase === "received" && <ReceivedScreen headingRef={headingRef} />}
       {phase === "preview" && <PreviewScreen headingRef={headingRef} answers={answers} onEdit={editAnswers} />}
     </div>

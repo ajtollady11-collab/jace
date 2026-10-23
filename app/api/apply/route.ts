@@ -1,22 +1,18 @@
 import { NextResponse } from "next/server";
 import { questions, validateAnswer, emptyAnswers, type ApplicationAnswers } from "@/config/application";
+import { createApplication, isDatabaseConfigured } from "@/lib/db";
+import { sendWebhook, webhookConfigured } from "@/lib/webhook";
 
 /**
  * ─────────────────────────────────────────────────────────────
- *  APPLICATION SUBMISSION ENDPOINT
+ *  APPLICATION SUBMISSION
  * ─────────────────────────────────────────────────────────────
- *  To go live, set these environment variables in Vercel
- *  (Project → Settings → Environment Variables):
+ *  With a database connected (DATABASE_URL), the application is saved
+ *  and the visitor goes straight on to book their call.
  *
- *    APPLICATION_WEBHOOK_URL     = where applications are sent (required)
- *    APPLICATION_WEBHOOK_SECRET  = optional shared secret header
- *
- *  The webhook receives a JSON POST: { answers: {...}, meta: {...} }
- *  Works with Zapier, Make, n8n, a CRM webhook, or your own API.
- *
- *  While APPLICATION_WEBHOOK_URL is NOT set, this route returns
- *  { status: "preview" } and the site shows a DEVELOPMENT MODE
- *  screen. Nothing is stored or delivered in that mode.
+ *  Without a database:
+ *   - APPLICATION_WEBHOOK_URL set → forwarded there, "Application Received"
+ *   - nothing set → DEVELOPMENT MODE preview, nothing is stored or sent
  * ─────────────────────────────────────────────────────────────
  */
 
@@ -47,11 +43,8 @@ export async function POST(req: Request) {
           ? raw.trim()
           : "";
 
-    if ((q.type === "single") && !q.options?.includes(value as string)) {
-      return NextResponse.json(
-        { status: "error", message: `Please answer: “${q.question}”` },
-        { status: 422 },
-      );
+    if (q.type === "single" && !q.options?.includes(value as string)) {
+      return NextResponse.json({ status: "error", message: `Please answer: “${q.question}”` }, { status: 422 });
     }
     const error = validateAnswer(q, value);
     if (error) {
@@ -60,43 +53,39 @@ export async function POST(req: Request) {
     (answers as Record<string, unknown>)[q.id] = value;
   }
 
-  const webhookUrl = process.env.APPLICATION_WEBHOOK_URL;
+  const cleanMeta = {
+    submittedAt: typeof meta.submittedAt === "string" ? meta.submittedAt.slice(0, 40) : new Date().toISOString(),
+    pageUrl: typeof meta.pageUrl === "string" ? meta.pageUrl.slice(0, 500) : "",
+    userAgent: (req.headers.get("user-agent") ?? "").slice(0, 300),
+  };
 
-  // DEVELOPMENT MODE — no backend configured. Be honest: nothing is delivered.
-  if (!webhookUrl) {
-    return NextResponse.json({ status: "preview" });
+  // 1. Database connected → save and continue to booking
+  if (isDatabaseConfigured()) {
+    try {
+      const { id, token } = await createApplication(answers, cleanMeta);
+      await sendWebhook("application.submitted", { applicationId: id, answers, meta: cleanMeta });
+      return NextResponse.json({ status: "received", bookingEnabled: true, applicationId: id, token });
+    } catch (err) {
+      console.error("Saving application failed:", err);
+      return NextResponse.json(
+        { status: "error", message: "Something went wrong while saving your application. Please try again." },
+        { status: 500 },
+      );
+    }
   }
 
-  try {
-    const res = await fetch(webhookUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(process.env.APPLICATION_WEBHOOK_SECRET
-          ? { "x-application-secret": process.env.APPLICATION_WEBHOOK_SECRET }
-          : {}),
-      },
-      body: JSON.stringify({
-        answers,
-        meta: {
-          submittedAt: typeof meta.submittedAt === "string" ? meta.submittedAt : new Date().toISOString(),
-          receivedAt: new Date().toISOString(),
-          pageUrl: typeof meta.pageUrl === "string" ? meta.pageUrl : "",
-          userAgent: req.headers.get("user-agent") ?? "",
-        },
-      }),
-    });
-
-    if (!res.ok) throw new Error(`Webhook responded ${res.status}`);
-    return NextResponse.json({ status: "received" });
-  } catch (err) {
-    console.error("Application delivery failed:", err);
-    return NextResponse.json(
-      {
-        status: "error",
-        message: "Something went wrong while sending your application. Please try again in a moment.",
-      },
-      { status: 502 },
-    );
+  // 2. Webhook only → forward, no booking calendar
+  if (webhookConfigured()) {
+    const ok = await sendWebhook("application.submitted", { answers, meta: cleanMeta });
+    if (!ok) {
+      return NextResponse.json(
+        { status: "error", message: "Something went wrong while sending your application. Please try again." },
+        { status: 502 },
+      );
+    }
+    return NextResponse.json({ status: "received", bookingEnabled: false });
   }
+
+  // 3. Nothing configured → honest preview
+  return NextResponse.json({ status: "preview" });
 }

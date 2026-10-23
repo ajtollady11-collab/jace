@@ -1,61 +1,91 @@
-# Jace Sullivan — Business Growth Website
+# Jace Sullivan — Business Growth Website + Booking System
 
-Next.js 16 · React 19 · TypeScript · Tailwind CSS 4. Single landing page with an embedded multi-step application.
+Next.js 16 · React 19 · TypeScript · Tailwind CSS 4 · Postgres
 
-## Deploy (GitHub → Vercel)
+- Landing page with a 9-question application
+- After applying, visitors book a **free 15-minute call** (age, email and phone collected; name carries over from the application)
+- Slots run **08:00–22:00 UK time**, shown to each visitor in **their own time zone**
+- **Team dashboard** at `/admin` with every booking, contact details and full application answers
 
-1. Push this folder to a GitHub repo (`node_modules` and `.next` are already git-ignored).
-2. In Vercel: **Add New → Project → import the repo**. Framework is detected as Next.js; no settings to change.
-3. Deploy.
+---
 
-Run locally (optional): `npm install` then `npm run dev` → http://localhost:3000
+## Setup on Vercel (one time, about 5 minutes)
 
-## Turning on real applications
+### 1. Add the database
+Vercel → your project → **Storage** → **Create Database** → **Neon** (Postgres, free plan is fine) → **Connect** it to this project.
+This adds `DATABASE_URL` automatically. The tables are created on their own the first time someone applies.
 
-Until this is set, the form runs in **Development Mode**: it works fully, but on submit it shows a clearly labelled preview screen and **nothing is delivered**.
+### 2. Set the dashboard password
+Vercel → your project → **Settings → Environment Variables** → add:
 
-In Vercel → Project → Settings → Environment Variables, add:
+| Name | Value |
+|---|---|
+| `ADMIN_PASSWORD` | A strong password, at least 8 characters |
 
-| Variable | Required | What it does |
+### 3. Redeploy
+**Deployments** → ⋯ on the latest → **Redeploy**. (Environment changes only apply to new deployments.)
+
+### 4. Sign in
+Go to `https://your-site/admin` and enter the password.
+
+---
+
+## How booking works
+
+1. The visitor answers the application → it's saved.
+2. They enter name (pre-filled), email, phone (with country code) and age (18+).
+3. They pick a date and time. Their time zone is detected automatically (they can change it), e.g. a New York visitor sees 3:00 AM–4:45 PM instead of 08:00–21:45.
+4. They confirm → the call is saved in UK time, and they get Google Calendar / Apple / Outlook buttons.
+
+Built-in safeguards:
+- **No double bookings.** The database refuses a second booking for the same slot, even if two people click at the same instant.
+- **One upcoming call per person** (matched by application and email).
+- **2 hours' minimum notice.** Slots starting sooner are hidden.
+- UK clock changes (GMT ↔ BST) are handled automatically.
+
+## The dashboard (`/admin`)
+
+- **Upcoming / Past / Cancelled** calls grouped by day, in UK time, with the caller's local time too
+- Click a booking to see contact details and **every application answer**
+- **Applied, not booked**: people who finished the application but didn't pick a time
+- **Search**, **Cancel booking** (frees the slot; doesn't notify them), **Export CSV** (opens in Excel/Sheets)
+
+## Changing availability — `config/booking.ts`
+
+| Setting | Default | Meaning |
 |---|---|---|
-| `APPLICATION_WEBHOOK_URL` | Yes | Where each application is POSTed as JSON (Zapier, Make, n8n, a CRM webhook, your own API) |
-| `APPLICATION_WEBHOOK_SECRET` | No | Sent as the `x-application-secret` header so your endpoint can verify requests |
-| `NEXT_PUBLIC_SITE_URL` | No | Your live domain, e.g. `https://yourdomain.com` (used for share previews) |
+| `dayStartHour` / `dayEndHour` | 8 / 22 | UK hours. Last call starts 21:45 |
+| `slotMinutes` | 15 | Call length |
+| `daysOfWeek` | all 7 | Remove numbers to close days (0 = Sunday … 6 = Saturday) |
+| `bookingWindowDays` | 21 | How far ahead people can book |
+| `minNoticeMinutes` | 120 | Minimum notice |
+| `minAge` | 18 | Minimum age |
 
-Redeploy after adding them. Visitors will then see **"Application Received"**.
+## Optional: email notifications
 
-The webhook receives one payload:
+The site doesn't send emails itself. To get an email or Slack message for every booking, set `APPLICATION_WEBHOOK_URL` to a Zapier / Make / n8n webhook. It receives JSON for two events, `application.submitted` and `booking.confirmed` (with name, email, phone, age, time in UTC and both time zones). From there you can email yourself and the client.
 
-```json
-{
-  "answers": {
-    "businessType": "...", "biggestChallenge": "...",
-    "currentMonthlyRevenue": "...", "targetMonthlyRevenue": "...",
-    "growthApproachesTried": ["..."], "fullName": "...",
-    "investmentCapacity": "...", "websiteOrSocial": "...",
-    "motivationAndBlockers": "..."
-  },
-  "meta": { "submittedAt": "...", "receivedAt": "...", "pageUrl": "...", "userAgent": "..." }
-}
-```
+## Editing site content — `config/site.ts`
 
-Code: `app/api/apply/route.ts` (server, validates + forwards) and `lib/submitApplication.ts` (browser).
+- **`DEVELOPMENT_MODE`** — set to `false` to hide placeholder notes once real content is in
+- **Case studies** — `caseStudies` (images go in `public/images/case-studies/`, then set `src`)
+- **Program**, **FAQ** — `programIncludes`, `programTerms`, `faqs`
 
-## Editing content — `config/site.ts`
+Application questions: `config/application.ts`.
 
-Almost everything you'll want to change lives in one file:
+## Without a database
 
-- **`DEVELOPMENT_MODE`** — set to `false` to hide all dev notes and placeholder tags once real content is in.
-- **Images** — drop files into `public/images/...` and set the matching `src`, e.g. `src: "/images/case-studies/store.jpg"`. While `src` is `null`, a labelled placeholder shows.
-  - Case studies: `caseStudies[].image` → `public/images/case-studies/`
-- **Evidence note** — `metricsNote` (set to `""` to remove it).
-- **Case studies** — `caseStudies` (set `placeholder: false` for real ones; add `link` for full write-ups).
-- **Program** — `programIncludes` (set `confirmed: true` and add `detail`), `programTerms.duration` / `.pricing`.
-- **FAQ** — `faqs`.
-
-Application questions and validation: `config/application.ts`.
+If `DATABASE_URL` isn't set, the application shows a clearly labelled preview screen and nothing is saved (or it's forwarded to `APPLICATION_WEBHOOK_URL` if set). Booking turns on as soon as the database is connected.
 
 ## Before going live
 
-- Replace the placeholder **Privacy Policy** (`app/privacy/page.tsx`) and **Terms** (`app/terms/page.tsx`). You're collecting personal data, so the privacy policy matters.
-- Add real images, confirm program details, then set `DEVELOPMENT_MODE = false`.
+- Replace the placeholder **Privacy Policy** (`app/privacy/page.tsx`) and **Terms** (`app/terms/page.tsx`). You're now storing names, emails, phone numbers and ages, so a proper privacy policy is required (UK GDPR).
+- Make a test booking yourself, check it appears in `/admin`, then cancel it.
+
+## Run locally (optional)
+
+```
+npm install
+cp .env.example .env.local   # fill in DATABASE_URL (copy it from Vercel) and ADMIN_PASSWORD
+npm run dev
+```

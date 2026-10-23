@@ -14,14 +14,14 @@ export type ApplicationPayload = {
 };
 
 export type SubmitResult =
-  | { status: "received" } // delivered to the configured backend
+  | { status: "received"; booking?: { applicationId: string; token: string } } // saved; `booking` present when the calendar is live
   | { status: "preview" } // DEVELOPMENT MODE — no backend configured, nothing delivered
   | { status: "error"; message: string };
 
 /**
- * Sends the application to our own API route (/app/api/apply/route.ts).
- * The route forwards it server-side to APPLICATION_WEBHOOK_URL, so no
- * secrets or endpoints are ever exposed in the browser.
+ * Sends the application to our own API route (/app/api/apply/route.ts),
+ * which saves it to the database (and optionally a webhook) server-side,
+ * so no secrets or endpoints are ever exposed in the browser.
  */
 export async function submitApplication(answers: ApplicationAnswers): Promise<SubmitResult> {
   const payload: ApplicationPayload = {
@@ -39,9 +39,19 @@ export async function submitApplication(answers: ApplicationAnswers): Promise<Su
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
-    const data = (await res.json().catch(() => null)) as { status?: string; message?: string } | null;
+    const data = (await res.json().catch(() => null)) as {
+      status?: string;
+      message?: string;
+      bookingEnabled?: boolean;
+      applicationId?: string;
+      token?: string;
+    } | null;
 
-    if (res.ok && data?.status === "received") return { status: "received" };
+    if (res.ok && data?.status === "received") {
+      return data.bookingEnabled && data.applicationId && data.token
+        ? { status: "received", booking: { applicationId: data.applicationId, token: data.token } }
+        : { status: "received" };
+    }
     if (res.ok && data?.status === "preview") return { status: "preview" };
 
     return {
