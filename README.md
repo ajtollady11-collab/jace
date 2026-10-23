@@ -4,8 +4,8 @@ Next.js 16 · React 19 · TypeScript · Tailwind CSS 4 · Postgres
 
 - Landing page with a 9-question application
 - After applying, visitors book a **free 15-minute call** (age, email and phone collected; name carries over from the application)
-- Slots run **08:00–22:00 UK time**, shown to each visitor in **their own time zone**
-- **Team dashboard** at `/admin` with every booking, contact details and full application answers
+- 15-minute calls starting **every 30 minutes, 08:00–21:30 UK time** (15-minute prep break after each), shown to each visitor in **their own time zone**
+- **Team dashboard** at `/admin`: a week **calendar** of booked/open slots and breaks, plus a list view with contact details and full application answers
 
 ---
 
@@ -34,7 +34,7 @@ Go to `https://your-site/admin` and enter the password.
 
 1. The visitor answers the application → it's saved.
 2. They enter name (pre-filled), email, phone (with country code) and age (18+).
-3. They pick a date and time. Their time zone is detected automatically (they can change it), e.g. a New York visitor sees 3:00 AM–4:45 PM instead of 08:00–21:45.
+3. They pick a date and time. Their time zone is detected automatically (they can change it), e.g. a New York visitor sees 3:00 AM–4:30 PM instead of 08:00–21:30.
 4. They confirm → the call is saved in UK time, and they get Google Calendar / Apple / Outlook buttons.
 
 Built-in safeguards:
@@ -45,7 +45,8 @@ Built-in safeguards:
 
 ## The dashboard (`/admin`)
 
-- **Upcoming / Past / Cancelled** calls grouped by day, in UK time, with the caller's local time too
+- **Calendar** (default): a week grid of every slot — booked (gold, click for details), open, prep breaks, past/too soon, and closed days — with a live "now" line. Shows one day at a time on phones.
+- **List** view: **Upcoming / Past / Cancelled** calls grouped by day, in UK time, with the caller's local time too
 - Click a booking to see contact details and **every application answer**
 - **Applied, not booked**: people who finished the application but didn't pick a time
 - **Search**, **Cancel booking** (frees the slot; doesn't notify them), **Export CSV** (opens in Excel/Sheets)
@@ -54,8 +55,9 @@ Built-in safeguards:
 
 | Setting | Default | Meaning |
 |---|---|---|
-| `dayStartHour` / `dayEndHour` | 8 / 22 | UK hours. Last call starts 21:45 |
+| `dayStartHour` / `dayEndHour` | 8 / 22 | UK hours. Last call starts 21:30 |
 | `slotMinutes` | 15 | Call length |
+| `slotIntervalMinutes` | 30 | How often a call can start. The difference (15 min) is your prep break |
 | `daysOfWeek` | all 7 | Remove numbers to close days (0 = Sunday … 6 = Saturday) |
 | `bookingWindowDays` | 21 | How far ahead people can book |
 | `minNoticeMinutes` | 120 | Minimum notice |

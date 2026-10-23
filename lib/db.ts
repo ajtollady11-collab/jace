@@ -97,14 +97,23 @@ async function ensureSchema(): Promise<void> {
   return g.__jsSchema;
 }
 
-async function withClient<T>(fn: (c: PoolClient) => Promise<T>): Promise<T> {
+async function withClient<T>(fn: (c: PoolClient) => Promise<T>, retried = false): Promise<T> {
   await ensureSchema();
   const client = await pool().connect();
+  let result: T;
   try {
-    return await fn(client);
-  } finally {
+    result = await fn(client);
+  } catch (e) {
     client.release();
+    // Tables missing (e.g. database was reset)? Recreate them and retry once.
+    if (!retried && (e as { code?: string }).code === "42P01") {
+      g.__jsSchema = undefined;
+      return withClient(fn, true);
+    }
+    throw e;
   }
+  client.release();
+  return result;
 }
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

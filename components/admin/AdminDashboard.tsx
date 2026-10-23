@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { AdminApplication, AdminBooking } from "@/lib/db";
 import { answerLabels, type ApplicationAnswers } from "@/config/application";
 import { booking as cfg } from "@/config/booking";
+import AdminCalendar from "./AdminCalendar";
 import { dateKey, formatDate, formatTime, prefers12h, tzAbbrev, tzCity } from "@/lib/time";
 
 const UK = cfg.businessTimeZone;
@@ -26,6 +27,20 @@ export default function AdminDashboard({
   const [open, setOpen] = useState<string | null>(null);
   const [cancelling, setCancelling] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [view, setView] = useState<"calendar" | "list">("calendar");
+  const [modal, setModal] = useState<AdminBooking | null>(null);
+
+  useEffect(() => {
+    if (!modal) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setModal(null);
+    document.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [modal]);
 
   const groups = useMemo(() => {
     const upcoming: AdminBooking[] = [];
@@ -78,6 +93,7 @@ export default function AdminDashboard({
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.message);
       setNotice(`Cancelled ${b.name}'s call. That slot is open again.`);
+      setModal(null);
       router.refresh();
     } catch (e) {
       setNotice((e as Error).message || "Couldn’t cancel that booking.");
@@ -153,6 +169,32 @@ export default function AdminDashboard({
           </div>
         )}
 
+        {/* View switch */}
+        <div className="mt-8 inline-flex rounded-[10px] border border-line bg-card p-1" role="tablist" aria-label="View">
+          {(["calendar", "list"] as const).map((v) => (
+            <button
+              key={v}
+              type="button"
+              role="tab"
+              aria-selected={view === v}
+              onClick={() => setView(v)}
+              className={`rounded-[7px] px-4 py-2 text-sm capitalize transition-colors ${
+                view === v ? "bg-gold text-ink" : "text-fg-2 hover:text-fg"
+              }`}
+            >
+              {v === "calendar" ? "Calendar" : "List"}
+            </button>
+          ))}
+        </div>
+
+        {view === "calendar" && (
+          <div className="mt-5">
+            <AdminCalendar bookings={bookings} nowMs={nowMs} onOpen={setModal} />
+          </div>
+        )}
+
+        {view === "list" && (
+          <>
         {/* Tabs + search */}
         <div className="mt-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div role="tablist" aria-label="Booking lists" className="-mx-5 flex gap-1 overflow-x-auto px-5 md:mx-0 md:px-0">
@@ -247,7 +289,51 @@ export default function AdminDashboard({
               </ul>
             ))}
         </div>
+          </>
+        )}
       </main>
+
+      {/* Booking details pop-up (from calendar) */}
+      {modal && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-0 backdrop-blur-sm sm:items-center sm:p-6"
+          onClick={(e) => e.target === e.currentTarget && setModal(null)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Booking: ${modal.name}`}
+            className="step-enter max-h-[92svh] w-full max-w-4xl overflow-y-auto rounded-t-[18px] border border-line bg-card sm:rounded-[18px]"
+          >
+            <div className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-line bg-card px-5 py-4 sm:px-6">
+              <div className="min-w-0">
+                <p className="truncate font-display text-lg font-semibold">{modal.name}</p>
+                <p className="text-sm text-fg-2">
+                  {formatDate(+new Date(modal.startAt), UK)} · {formatTime(+new Date(modal.startAt), UK)} UK
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setModal(null)}
+                autoFocus
+                aria-label="Close"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-line text-fg-2 hover:text-fg"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="px-5 py-5 sm:px-6">
+              <BookingDetail
+                b={modal}
+                cancelling={cancelling === modal.id}
+                onCancel={
+                  modal.status === "confirmed" && +new Date(modal.endAt) > nowMs ? () => cancel(modal) : undefined
+                }
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -266,7 +352,6 @@ function BookingRow({
   cancelling: boolean;
 }) {
   const start = +new Date(b.startAt);
-  const end = +new Date(b.endAt);
   const theirTz = b.visitorTimeZone;
   const differentTz = theirTz !== UK;
 
@@ -306,50 +391,68 @@ function BookingRow({
 
       {open && (
         <div className="border-t border-line px-4 py-5 sm:px-5">
-          <div className="grid gap-6 lg:grid-cols-[300px_1fr]">
-            <div>
-              <h3 className="text-xs font-semibold uppercase tracking-[0.16em] text-gold">Contact</h3>
-              <dl className="mt-3 space-y-2.5 text-sm">
-                <Item label="Name" value={b.name} />
-                <Item label="Email" value={<a className="text-gold-2 underline-offset-2 hover:underline" href={`mailto:${b.email}`}>{b.email}</a>} />
-                <Item label="Phone" value={<a className="text-gold-2 underline-offset-2 hover:underline" href={`tel:${b.phone}`}>{b.phone}</a>} />
-                <Item label="Age" value={String(b.age)} />
-              </dl>
-
-              <h3 className="mt-6 text-xs font-semibold uppercase tracking-[0.16em] text-gold">Call</h3>
-              <dl className="mt-3 space-y-2.5 text-sm">
-                <Item label="UK time" value={`${formatDate(start, UK, "short")}, ${formatTime(start, UK)}–${formatTime(end, UK)} ${tzAbbrev(start, UK)}`} />
-                {differentTz && (
-                  <Item
-                    label="Their time"
-                    value={`${formatTime(start, theirTz, { hour12: prefers12h(theirTz) })} ${tzAbbrev(start, theirTz)} (${tzCity(theirTz)})`}
-                  />
-                )}
-                <Item label="Booked" value={`${formatDate(+new Date(b.createdAt), UK, "short")}, ${formatTime(+new Date(b.createdAt), UK)}`} />
-                {b.cancelledAt && <Item label="Cancelled" value={`${formatDate(+new Date(b.cancelledAt), UK, "short")}, ${formatTime(+new Date(b.cancelledAt), UK)}`} />}
-              </dl>
-
-              {onCancel && (
-                <button
-                  type="button"
-                  onClick={onCancel}
-                  disabled={cancelling}
-                  className="mt-6 rounded-[8px] border border-red-400/40 px-4 py-2 text-sm text-red-300 transition-colors hover:bg-red-400/10 disabled:opacity-50"
-                >
-                  {cancelling ? "Cancelling…" : "Cancel booking"}
-                </button>
-              )}
-            </div>
-            <div>
-              <h3 className="text-xs font-semibold uppercase tracking-[0.16em] text-gold">Application answers</h3>
-              <div className="mt-3">
-                <Answers answers={b.answers} />
-              </div>
-            </div>
-          </div>
+          <BookingDetail b={b} onCancel={onCancel} cancelling={cancelling} />
         </div>
       )}
     </li>
+  );
+}
+
+export function BookingDetail({
+  b,
+  onCancel,
+  cancelling,
+}: {
+  b: AdminBooking;
+  onCancel?: () => void;
+  cancelling: boolean;
+}) {
+  const start = +new Date(b.startAt);
+  const end = +new Date(b.endAt);
+  const theirTz = b.visitorTimeZone;
+  const differentTz = theirTz !== UK;
+  return (
+      <div className="grid gap-6 lg:grid-cols-[300px_1fr]">
+        <div>
+          <h3 className="text-xs font-semibold uppercase tracking-[0.16em] text-gold">Contact</h3>
+          <dl className="mt-3 space-y-2.5 text-sm">
+            <Item label="Name" value={b.name} />
+            <Item label="Email" value={<a className="text-gold-2 underline-offset-2 hover:underline" href={`mailto:${b.email}`}>{b.email}</a>} />
+            <Item label="Phone" value={<a className="text-gold-2 underline-offset-2 hover:underline" href={`tel:${b.phone}`}>{b.phone}</a>} />
+            <Item label="Age" value={String(b.age)} />
+          </dl>
+
+          <h3 className="mt-6 text-xs font-semibold uppercase tracking-[0.16em] text-gold">Call</h3>
+          <dl className="mt-3 space-y-2.5 text-sm">
+            <Item label="UK time" value={`${formatDate(start, UK, "short")}, ${formatTime(start, UK)}–${formatTime(end, UK)} ${tzAbbrev(start, UK)}`} />
+            {differentTz && (
+              <Item
+                label="Their time"
+                value={`${formatTime(start, theirTz, { hour12: prefers12h(theirTz) })} ${tzAbbrev(start, theirTz)} (${tzCity(theirTz)})`}
+              />
+            )}
+            <Item label="Booked" value={`${formatDate(+new Date(b.createdAt), UK, "short")}, ${formatTime(+new Date(b.createdAt), UK)}`} />
+            {b.cancelledAt && <Item label="Cancelled" value={`${formatDate(+new Date(b.cancelledAt), UK, "short")}, ${formatTime(+new Date(b.cancelledAt), UK)}`} />}
+          </dl>
+
+          {onCancel && (
+            <button
+              type="button"
+              onClick={onCancel}
+              disabled={cancelling}
+              className="mt-6 rounded-[8px] border border-red-400/40 px-4 py-2 text-sm text-red-300 transition-colors hover:bg-red-400/10 disabled:opacity-50"
+            >
+              {cancelling ? "Cancelling…" : "Cancel booking"}
+            </button>
+          )}
+        </div>
+        <div>
+          <h3 className="text-xs font-semibold uppercase tracking-[0.16em] text-gold">Application answers</h3>
+          <div className="mt-3">
+            <Answers answers={b.answers} />
+          </div>
+        </div>
+      </div>
   );
 }
 
